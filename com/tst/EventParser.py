@@ -4,17 +4,25 @@ Created on 2022. febr. 24.
 
 @author: MSzaba
 '''
-import requests
-from bs4 import BeautifulSoup
 from datetime import datetime
-import sys
 from pathlib import Path
-import time
-from unrpa.meta import description
 import random
+import sys
+import time
+
+from bs4 import BeautifulSoup
+from pythonwin.pywin.scintilla.control import null_byte
+import requests
+from unrpa.meta import description
+
+#from geopy.geocoders import Nominatim
+
 
 fileOptionConst = "-f"
 mandatoryPostfix = "?acontext=%7B%22event_action_history%22%3A[%7B%22surface%22%3A%22page%22%7D]%7D"
+processedURLs = set()
+
+processedEvents = {}
 
 def UrlDownloader (url):
     session = requests.Session()
@@ -222,7 +230,8 @@ def unicodeTransformer(target):
         "\\\\u201c": "",
         "\\\\u201d": "",
         "\\\\u0040": "@",
-        "\\\\u2019": "'"
+        "\\\\u2019": "'",
+        "\\\\u2736": '✶'
     }
     result = target
     for key in dictionary:
@@ -248,7 +257,10 @@ def getLocationName(locationSegment):
     startText = 'Page","contextual_name":"'
     startIndex = locationSegment.find(startText)
     if startIndex < 0:
-        return ""
+        startText = '"contextual_name":"'
+        startIndex = locationSegment.find(startText)
+        if startIndex < 0:
+            return ""
     endIndex = locationSegment.find('"', startIndex + len(startText))
     if endIndex < 0:
         return ""
@@ -258,7 +270,7 @@ def getAddress(locationSegment):
     startText = 'address":{"street":"'
     startIndex = locationSegment.find(startText)
     if startIndex < 0:
-        return ""
+        return checkLatitudeLocation(locationSegment)
     endIndex = locationSegment.find('"', startIndex + len(startText))
     if endIndex < 0:
         return ""
@@ -273,6 +285,26 @@ def getAddress(locationSegment):
     cityAddress = locationSegment[startCityIndex + len(startCityText):endCityIndex]
     
     return unicodeTransformer(cityAddress + " " + streetAddress)
+    
+    
+def checkLatitudeLocation(locationSegment):
+    startText = 'latitude":'
+    startIndex = locationSegment.find(startText)
+    if startIndex < 0:
+        return ""
+    endIndex = locationSegment.find(',', startIndex + len(startText))
+    latitude = locationSegment[startIndex + len(startText):endIndex]
+    startText = 'longitude":'
+    startIndex = locationSegment.find(startText)
+    if startIndex < 0:
+        return ""
+    endIndex = locationSegment.find('}', startIndex + len(startText))
+    longitude = locationSegment[startIndex + len(startText):endIndex]
+    
+    #geolocator = Nominatim(user_agent="specify_your_app_name_here")
+    #location = geolocator.reverse("52.509669, 13.376294")
+    #print(location.address)
+    return latitude + ", " + longitude
     
 def getLocationSegment(detailSection):
     startText = 'event_place":{"'
@@ -369,11 +401,14 @@ def getHostNames(listOfHosts):
         if endIndex < 0:
             continue
         name = segment[startIndex + len(startText):endIndex]
-        hostNames.add(name)
+        hostNames.add(unicodeTransformer(name))
     return hostNames
 
 def processUrl(url):
-    url = addMandatoryPostfix(url)
+    url = addMandatoryPostfix(url.strip()).strip()
+    if url in processedURLs:
+        print("Url is already processed: ", url)
+        return
     content = UrlDownloader(url)
     parsed = ParseFile(content)
     #FileWriter(parsed.decode(pretty_print=True))
@@ -391,8 +426,10 @@ def processUrl(url):
     startTime = getStartTieme(parsed)
     #print("Start time: " , startTime)
     eventHosts = getEventHosts(parsed)
-    #print("Host names: " , eventHosts)
+    print("Host names: " , eventHosts)
     printEventDetails(title,description,location,startTime,eventHosts)
+    print("URL has added to the visited list")
+    processedURLs.add(url)
     
     
 def addMandatoryPostfix(url):
@@ -404,7 +441,12 @@ def addMandatoryPostfix(url):
     
 def printEventDetails(title,description,location,startTime,eventHosts):
     print("----------------------------------")
-    print(f"{eventHosts} @ {location} ({startTime}) [{title}] | {description}")
+    if eventHosts is not None and location is not None:
+        print(f"{eventHosts} @ {location} ({startTime}) [{title}] | {description}")
+    if eventHosts is not None and location is None:
+        print(f"{eventHosts} @ ({startTime}) [{title}] | {description}")
+    else:
+        print("Event cannot be processed")
 
 #url= "https://www.facebook.com/events/660291668647135/?ref=newsfeed&__cft__[0]=AZXrA8ucQnHtsARxHfdny1ayHdr3IqsEPHIX1klNqvzUOpNhk1Or2ujAWIIrUVy_XUprabtTChyzKYl-cvMYFo7P7_Qunctpqv8zEYGtcPiIh_YeotPWAcgvs2RshmZCgrQpXZYhhpOR1JLUNMAXym2tmFRHEE3cx-Co6KnZiRRKOF73wDueSFK3C2xmlPLXxPU&__tn__=H-R"
 #url= "https://www.facebook.com/events/484279216489566/?acontext=%7B%22event_action_history%22%3A[%7B%22extra_data%22%3A%22%22%2C%22mechanism%22%3A%22your_upcoming_events_unit%22%2C%22surface%22%3A%22bookmark%22%7D%2C%7B%22extra_data%22%3A%22%22%2C%22mechanism%22%3A%22your_upcoming_events_unit%22%2C%22surface%22%3A%22bookmark%22%7D]%2C%22ref_notif_type%22%3Anull%7D"
@@ -445,6 +487,26 @@ def loadURLList(fileName):
 def Wait():
     time.sleep(random.randint(2300, 4350)/1000)
 
+def createProcessedEventsDictionary():
+    retVal = {}
+    retVal["Thursday"] = createSubDictionary()
+    retVal["Friday"] = createSubDictionary()
+    retVal["Saturday"] = createSubDictionary()
+    retVal["Sunday"] = createSubDictionary()
+    retVal["Monday"] = createSubDictionary()
+    retVal["Tuesday"] = createSubDictionary()
+    retVal["Wednesday"] = createSubDictionary()
+    return retVal
+    
+def createSubDictionary():
+    retVal = {}
+    retVal["Budapest"] =[]
+    retVal["Vidék"] =[]
+    retVal["Külföld"] =[]
+    retVal["Média"] =[]
+    return retVal
+
+processedEvents = createProcessedEventsDictionary()
 inputParameters = getInputParameters() 
 if  inputParameters is not None and len(inputParameters) > 0:
     print("input parameters: " ,inputParameters)
