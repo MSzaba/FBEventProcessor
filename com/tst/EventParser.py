@@ -161,6 +161,7 @@ def getDetailSection(parsed):
     stringRepresentation = str(parsed)
     startIndex = stringRepresentation.find(sectionStart)
     if startIndex < 0:
+        checkLoginForm(parsed)
         return None
     endIndex = stringRepresentation.find(sectionEnd, startIndex);
     if endIndex < 0:
@@ -169,6 +170,12 @@ def getDetailSection(parsed):
     print("Detail found and saved: ")
     FileWriter(part, "eventDetails")
     return part
+
+def checkLoginForm(parsed):
+    passTag = "pass"
+    emailTag = "email"
+    if parsed.find(passTag) > 0 and parsed.find(emailTag) > 0:
+        print("Login screeen is displayed")
     
 def getDescription(text):
     startText = 'event_description":{"text":"'
@@ -386,7 +393,7 @@ def getHostLists(segment):
             if not isHostInProcess:
                 isHostInProcess = True
                 previousStartIndex = i
-    #print("Host List:" , hostList)
+    print("Host List:" , hostList)
     return hostList
    
 def getHostNames(listOfHosts):
@@ -419,16 +426,16 @@ def processUrl(url):
     description = ""
     location = ""
     if detailSection is None:
-        print("unable to find event details")
+        print("unable to find event details, the access might be blocked")
     else:
         description = getDescription(detailSection)
         location = getLocation(detailSection)
     startTime = getStartTieme(parsed)
     #print("Start time: " , startTime)
     eventHosts = getEventHosts(parsed)
-    print("Host names: " , eventHosts)
+    #print("Host names: " , eventHosts)
     printEventDetails(title,description,location,startTime,eventHosts)
-    print("URL has added to the visited list")
+    #print("URL has added to the visited list")
     processedURLs.add(url)
     
     
