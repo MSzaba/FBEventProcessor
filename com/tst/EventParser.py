@@ -14,6 +14,7 @@ from bs4 import BeautifulSoup
 from pythonwin.pywin.scintilla.control import null_byte
 import requests
 from unrpa.meta import description
+from logging import _startTime
 
 #from geopy.geocoders import Nominatim
 
@@ -30,12 +31,13 @@ def UrlDownloader (url):
 
     headers = {
         #'User-Agent': 'Mozilla/5.0 (Windows NT 6.1) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/41.0.2228.0 Safari/537.36'
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/97.0.4692.99 Safari/537.36 Edg/97.0.1072.69',
+        #'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/97.0.4692.99 Safari/537.36 Edg/97.0.1072.69',
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/101.0.4951.54 Safari/537.36 Edg/101.0.1210.39',
         'accept':    'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.9',
         #'accept-encoding':    'gzip, deflate, br',
         'accept-language':    'en-US,en;q=0.9',
         'cache-control':    'max-age=0',
-        'sec-ch-ua':    '" Not A;Brand";v="99", "Chromium";v="96", "Microsoft Edge";v="96"',
+        'sec-ch-ua':    '" Not A;Brand";v="99", "Chromium";v="101", "Microsoft Edge";v="101"',
         'sec-ch-ua-mobile':    '?0',
         'sec-ch-ua-platform':    '"Windows"',
         'sec-fetch-dest':    'document',
@@ -105,6 +107,8 @@ def getTitle(content):
 def unicodeTransformerSlashX(target):
     dictionary = {
         "\\xc3\\xb3": "ó",
+        "\\xc5\\x91": "ő",
+        "\\xc3\\xb6": "ö",
         "\\\\u00f6": "ö",
         "\\\\u0151": "ő",
         "\\xc3\\xa9": "é",
@@ -119,6 +123,8 @@ def unicodeTransformerSlashX(target):
         "\\\\u00c1": "Á",
         "\\\\u00d6": "Ö",
         "\\\\u00da": "Ú",
+        "\\\\u00dc": "Ü",
+        "\\\\u0150": "Ő",
         "\\n": " ",
         "\\\\u27a4": "➤",
         "\\\\ud83c": "",
@@ -132,7 +138,11 @@ def unicodeTransformerSlashX(target):
         "\\\\u201c": "",
         "\\\\u201d": "",
         "\\\\u0040": "@",
-        "\\xe2\\x80\\x93": ""
+        "\/u00ab": "",
+        "\/u00bb": "",
+        "\\xe2\\x80\\x93": "",
+        "\\xe2\\x98\\qx85": "★",
+        "\\/": "\\"
     }
     result = target
     for key in dictionary:
@@ -224,8 +234,11 @@ def unicodeTransformer(target):
         "\\\\u00c1": "Á",
         "\\\\u00d6": "Ö",
         "\\\\u00da": "Ú",
+        "\\\\u00dc": "Ü",
+        "\\\\u0150": "Ő",
         "\\\\n": " ",
         "\\\\u27a4": "➤",
+        "\\xe2\\x98\\qx85": "★",
         "\\\\ud83c": "",
         "\\\\udfab": "",
         "\\\\ud83d": "",
@@ -238,7 +251,14 @@ def unicodeTransformer(target):
         "\\\\u201d": "",
         "\\\\u0040": "@",
         "\\\\u2019": "'",
-        "\\\\u2736": '✶'
+        "\\\\u2736": '✶',
+        "\\\\udfb7": "",
+        "\\\\udcaf": "",
+        "\\\\udc4c": "",
+        "\/u00ab": "",
+        "\/u00bb": "",
+        "\\/": "\\",
+        "\\\\": "/"
     }
     result = target
     for key in dictionary:
@@ -393,7 +413,7 @@ def getHostLists(segment):
             if not isHostInProcess:
                 isHostInProcess = True
                 previousStartIndex = i
-    print("Host List:" , hostList)
+    #print("Host List:" , hostList)
     return hostList
    
 def getHostNames(listOfHosts):
@@ -435,6 +455,7 @@ def processUrl(url):
     eventHosts = getEventHosts(parsed)
     #print("Host names: " , eventHosts)
     printEventDetails(title,description,location,startTime,eventHosts)
+    addProcessInfoToSet(location,startTime,eventHosts)
     #print("URL has added to the visited list")
     processedURLs.add(url)
     
@@ -488,7 +509,7 @@ def loadURLList(fileName):
             lines = f.readlines()
             return lines
     else:
-        print("Uable to reach file: ", fileName)
+        print("Unable to reach file: ", fileName)
         return None
     
 def Wait():
@@ -511,9 +532,72 @@ def createSubDictionary():
     retVal["Vidék"] =[]
     retVal["Külföld"] =[]
     retVal["Média"] =[]
+    retVal["Média"] =[]
     return retVal
 
-processedEvents = createProcessedEventsDictionary()
+def addProcessInfoToSet(location,startTime,eventHosts):
+    print("eventHost", eventHosts)
+    print("location", location)
+    print("startTime", startTime)
+    venueToPrint = ""
+    if location is not None and  len(location) > 0:
+        venueToPrint = location["name"]
+    hostToPrint = ""
+    if eventHosts is not None:
+        for host in eventHosts:
+            if venueToPrint != host:
+                hostToPrint = hostToPrint + host + " "
+    city = ""
+    if location is not None and len(location) > 0 and location["address"] is not None and len(location["address"]) > 0:
+        splitted = location["address"].split()
+        city = splitted[0]
+    day = ""
+    startTimeAsString = ""
+    if startTime is not None:
+        splitted = startTime.split(",")
+        day = splitted[0] 
+        startTimeAsString = "unknown"
+        locationOfAT = startTime.find("at ")
+        if locationOfAT > 0:
+            startTimeAsString = startTime[locationOfAT:].split()[1].strip()
+            
+    
+    if day is not None and len(day) > 0:
+        if day not in processedEvents or processedEvents[day] is None:
+            processedEvents[day] = []
+        record = {
+            "band": hostToPrint,
+            "venue": venueToPrint,
+            "city": city,
+            "startTime":  startTimeAsString
+            }
+        processedEvents[day].append(record)
+    print("eventHost", hostToPrint)
+    print("location", venueToPrint)
+    print("city", city)
+    print("day", day)
+    print("Start Time: ",startTimeAsString)
+
+def printSummarizedData():
+    print("----------Summarized format-----------")
+    if len(processedEvents) > 0:
+        print()
+        #print(processedEvents)
+        for day in processedEvents:
+            print("Day: " , day)
+            if len(day) > 0:
+                
+                for group in processedEvents[day]:
+                    #print(group)
+                    band = group["band"]
+                    location = group["venue"]
+                    city = group["city"]
+                    startTime = group["startTime"]
+                    print(f"{band} @ {location} {startTime} ({city})")
+                print()
+    
+
+processedEvents = {}
 inputParameters = getInputParameters() 
 if  inputParameters is not None and len(inputParameters) > 0:
     print("input parameters: " ,inputParameters)
@@ -532,12 +616,12 @@ if  inputParameters is not None and len(inputParameters) > 0:
                         continue
                     if url.strip() == "#":
                         print("Break character (#) was reached. Stop processing")
-                        quit()
+                        break
                     processUrl(url)
                     Wait()
         else:
             processUrl(inputParameters[0])   
-            
+        printSummarizedData()   
     else:
         print("Unable to process input parameters")
 else:
