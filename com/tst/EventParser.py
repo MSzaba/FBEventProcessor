@@ -11,10 +11,8 @@ import sys
 import time
 
 from bs4 import BeautifulSoup
-from pythonwin.pywin.scintilla.control import null_byte
 import requests
-from unrpa.meta import description
-from logging import _startTime
+
 
 #from geopy.geocoders import Nominatim
 
@@ -60,17 +58,15 @@ def ParseFile(content1):
     return soup.prettify()
     return soup
 
-def FileWriter(content2, prefix):
+def FileWriter(content, prefix):
     time.sleep(1)
     today = datetime.now()
     ext = today.strftime("%y_%m_%d_%H_%M_%S")
     
     f = open("C:\\tmp2\\" +prefix +"_" + ext + ".txt", "x")
-    #soup = BeautifulSoup(content2, features="html.parser")
-    #converted = str(soup.string)
-    #converted2 = converted.replace('\n', '')
-    content3 = content2.replace('\n', '')
-    f.write(content3)
+
+    content_replaced = content.replace('\n', '')
+    f.write(content_replaced)
     f.flush()
     f.close()
     #print("File is written")
@@ -96,58 +92,13 @@ def getTitle(content):
             try:
                 reDecoded = removed.decode("utf-8")
             except UnicodeDecodeError:
-                print("String transformation was not successful. Another way is started")
-                print("original Title: " + title)
-                reDecoded = unicodeTransformerSlashX(str(title))
+                #print("String transformation was not successful. Another way is started")
+                #print("original Title: " + title)
+                reDecoded = unicodeTransformer(str(title))
 
             
             #print("Title: " , reDecoded)
             return reDecoded
-        
-def unicodeTransformerSlashX(target):
-    dictionary = {
-        "\\xc3\\xb3": "ó",
-        "\\xc5\\x91": "ő",
-        "\\xc3\\xb6": "ö",
-        "\\\\u00f6": "ö",
-        "\\\\u0151": "ő",
-        "\\xc3\\xa9": "é",
-        "\\\\u00ed": "í",
-        "\\xc3\\xa1": "á",
-        "\\\\u00fc": "ü",
-        "\\\\u0171": "ű",
-        "\\\\u00fa": "ú",
-        "\\\\u00c9": "É",
-        "\\\\u00cd": "Í",
-        "\\\\u00d3": "Ó",
-        "\\\\u00c1": "Á",
-        "\\\\u00d6": "Ö",
-        "\\\\u00da": "Ú",
-        "\\\\u00dc": "Ü",
-        "\\\\u0150": "Ő",
-        "\\n": " ",
-        "\\\\u27a4": "➤",
-        "\\\\ud83c": "",
-        "\\\\udfab": "",
-        "\\\\ud83d": "",
-        "\\\\ude42": "",
-        "\\\\ud83e": "",
-        "\\\\udd18": "",
-        "\\\\ud83e": "",
-        "\\\\udd86": "",
-        "\\\\u201c": "",
-        "\\\\u201d": "",
-        "\\\\u0040": "@",
-        "\/u00ab": "",
-        "\/u00bb": "",
-        "\\xe2\\x80\\x93": "",
-        "\\xe2\\x98\\qx85": "★",
-        "\\/": "\\"
-    }
-    result = target
-    for key in dictionary:
-        result = result.replace(key, dictionary[key])
-    return result
         
 def removeExtraSlash(textToProcess):
     #return str(textToProcess).replace("\\\\", "\\")
@@ -219,6 +170,13 @@ def getDescription(text):
 
 def unicodeTransformer(target):
     dictionary = {
+        "\\xc3\\xb3": "ó",
+        "\\xc5\\x91": "ő",
+        "\\xc3\\xb6": "ö",
+        "\\\\u00f6": "ö",
+        "\\\\u0151": "ő",
+        "\\xc3\\xa9": "é",
+        "\\xc3\\xa1": "á",
         "\\\\u00f3": "ó",
         "\\\\u00f6": "ö",
         "\\\\u0151": "ő",
@@ -238,7 +196,6 @@ def unicodeTransformer(target):
         "\\\\u0150": "Ő",
         "\\\\n": " ",
         "\\\\u27a4": "➤",
-        "\\xe2\\x98\\qx85": "★",
         "\\\\ud83c": "",
         "\\\\udfab": "",
         "\\\\ud83d": "",
@@ -255,10 +212,17 @@ def unicodeTransformer(target):
         "\\\\udfb7": "",
         "\\\\udcaf": "",
         "\\\\udc4c": "",
+        "\\\\u00ab": "",
+        "\\\\u00bb": "",
+        "\\\\u2013": "-",
+        "\\'": "'",
+        #"\\\\": "/",
         "\/u00ab": "",
         "\/u00bb": "",
-        "\\/": "\\",
-        "\\\\": "/"
+        "\\xe2\\x80\\x93": "",
+        "\\xe2\\x98\\x85": "★",
+        "\\/": "\\"
+        
     }
     result = target
     for key in dictionary:
@@ -476,10 +440,6 @@ def printEventDetails(title,description,location,startTime,eventHosts):
     else:
         print("Event cannot be processed")
 
-#url= "https://www.facebook.com/events/660291668647135/?ref=newsfeed&__cft__[0]=AZXrA8ucQnHtsARxHfdny1ayHdr3IqsEPHIX1klNqvzUOpNhk1Or2ujAWIIrUVy_XUprabtTChyzKYl-cvMYFo7P7_Qunctpqv8zEYGtcPiIh_YeotPWAcgvs2RshmZCgrQpXZYhhpOR1JLUNMAXym2tmFRHEE3cx-Co6KnZiRRKOF73wDueSFK3C2xmlPLXxPU&__tn__=H-R"
-#url= "https://www.facebook.com/events/484279216489566/?acontext=%7B%22event_action_history%22%3A[%7B%22extra_data%22%3A%22%22%2C%22mechanism%22%3A%22your_upcoming_events_unit%22%2C%22surface%22%3A%22bookmark%22%7D%2C%7B%22extra_data%22%3A%22%22%2C%22mechanism%22%3A%22your_upcoming_events_unit%22%2C%22surface%22%3A%22bookmark%22%7D]%2C%22ref_notif_type%22%3Anull%7D"
-#url= "https://www.facebook.com/events/499205238321110/"
-#url= "https://www.facebook.com/events/217414153851337/"
 
 def getInputParameters():
     #print("input parameters: " ,sys.argv)
@@ -515,30 +475,11 @@ def loadURLList(fileName):
 def Wait():
     time.sleep(random.randint(2300, 4350)/1000)
 
-def createProcessedEventsDictionary():
-    retVal = {}
-    retVal["Thursday"] = createSubDictionary()
-    retVal["Friday"] = createSubDictionary()
-    retVal["Saturday"] = createSubDictionary()
-    retVal["Sunday"] = createSubDictionary()
-    retVal["Monday"] = createSubDictionary()
-    retVal["Tuesday"] = createSubDictionary()
-    retVal["Wednesday"] = createSubDictionary()
-    return retVal
-    
-def createSubDictionary():
-    retVal = {}
-    retVal["Budapest"] =[]
-    retVal["Vidék"] =[]
-    retVal["Külföld"] =[]
-    retVal["Média"] =[]
-    retVal["Média"] =[]
-    return retVal
 
 def addProcessInfoToSet(location,startTime,eventHosts):
-    print("eventHost", eventHosts)
-    print("location", location)
-    print("startTime", startTime)
+    #print("eventHost", eventHosts)
+    #print("location", location)
+    #print("startTime", startTime)
     venueToPrint = ""
     if location is not None and  len(location) > 0:
         venueToPrint = location["name"]
@@ -572,11 +513,11 @@ def addProcessInfoToSet(location,startTime,eventHosts):
             "startTime":  startTimeAsString
             }
         processedEvents[day].append(record)
-    print("eventHost", hostToPrint)
-    print("location", venueToPrint)
-    print("city", city)
-    print("day", day)
-    print("Start Time: ",startTimeAsString)
+    #print("eventHost", hostToPrint)
+    #print("location", venueToPrint)
+    #print("city", city)
+    #print("day", day)
+    #print("Start Time: ",startTimeAsString)
 
 def printSummarizedData():
     print("----------Summarized format-----------")
